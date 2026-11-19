@@ -23,7 +23,7 @@
         <h1 class="site-title">Smart Routine &amp; Product Advisor</h1>
       </header>
 
-      <!-- Category Filter -->
+      <!-- Category Filter and Search -->
       <div class="search-section">
         <select id="categoryFilter">
           <option value="" disabled selected>Choose a Category</option>
@@ -37,6 +37,13 @@
           <option value="suncare">Suncare</option>
           <option value="fragrance">Fragrance</option>
         </select>
+        <input
+          type="text"
+          id="searchInput"
+          class="search-input"
+          placeholder="Search products by name or keyword…"
+          aria-label="Search products"
+        />
       </div>
 
       <!-- Products Grid -->
@@ -45,7 +52,7 @@
       <!-- Selected Products -->
       <div class="selected-products">
         <h2>Selected Products</h2>
-        <div id="selectedProductsList"></div>
+        <div id="selectedProductsList" class="selected-products-bubbles"></div>
         <button id="generateRoutine" class="generate-btn">
           <i class="fa-solid fa-wand-magic-sparkles"></i> Generate Routine
         </button>

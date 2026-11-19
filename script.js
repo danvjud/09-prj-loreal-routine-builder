@@ -1,5 +1,6 @@
 /* Get references to DOM elements */
 const categoryFilter = document.getElementById("categoryFilter");
+const searchInput = document.getElementById("searchInput");
 const productsContainer = document.getElementById("productsContainer");
 const chatForm = document.getElementById("chatForm");
 const chatWindow = document.getElementById("chatWindow");
@@ -10,6 +11,7 @@ const generateRoutineBtn = document.getElementById("generateRoutine");
 /* Store selected products and conversation history */
 let selectedProducts = [];
 let messages = [];
+let allProducts = []; // Store all loaded products for filtering
 
 /* Show initial placeholder until user selects a category */
 productsContainer.innerHTML = `
@@ -17,6 +19,11 @@ productsContainer.innerHTML = `
     Select a category to view products
   </div>
 `;
+
+/* Load all products on page load for filtering */
+loadProducts().then((products) => {
+  allProducts = products;
+});
 
 /* Load product data from JSON file */
 async function loadProducts() {
@@ -74,24 +81,92 @@ function updateSelectedProductsDisplay() {
       '<p class="no-products">No products selected yet</p>';
   } else {
     selectedProductsList.innerHTML = selectedProducts
-      .map((product) => `<div class="selected-item">${product.name}</div>`)
+      .map(
+        (product) => `
+      <div class="selected-product-bubble" data-product-id="${product.id}">
+        <span>${product.name}</span>
+        <button type="button" class="remove-btn" aria-label="Remove ${product.name}">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+    `
+      )
       .join("");
+
+    /* Add click handlers to remove buttons */
+    document.querySelectorAll(".remove-btn").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        const bubble = btn.closest(".selected-product-bubble");
+        const productId = bubble.dataset.productId;
+
+        /* Remove product from selected list */
+        selectedProducts = selectedProducts.filter((p) => p.id !== productId);
+
+        /* Deselect the product card in the grid */
+        const productCard = document.querySelector(
+          `.product-card[data-id="${productId}"]`
+        );
+        if (productCard) {
+          productCard.classList.remove("selected");
+        }
+
+        /* Update display */
+        updateSelectedProductsDisplay();
+      });
+    });
   }
 }
 
-/* Filter and display products when category changes */
-categoryFilter.addEventListener("change", async (e) => {
-  const products = await loadProducts();
-  const selectedCategory = e.target.value;
+/* Filter and display products based on category and search input */
+async function filterAndDisplayProducts() {
+  const selectedCategory = categoryFilter.value;
+  const searchTerm = searchInput.value.toLowerCase().trim();
 
-  /* filter() creates a new array containing only products 
-     where the category matches what the user selected */
-  const filteredProducts = products.filter(
+  // If no category is selected, show placeholder
+  if (!selectedCategory) {
+    productsContainer.innerHTML = `
+      <div class="placeholder-message">
+        Select a category to view products
+      </div>
+    `;
+    return;
+  }
+
+  // Filter by category first
+  let filteredProducts = allProducts.filter(
     (product) => product.category === selectedCategory
   );
 
+  // Then filter by search term (search in name, brand, and category)
+  if (searchTerm) {
+    filteredProducts = filteredProducts.filter(
+      (product) =>
+        product.name.toLowerCase().includes(searchTerm) ||
+        product.brand.toLowerCase().includes(searchTerm) ||
+        (product.category && product.category.toLowerCase().includes(searchTerm))
+    );
+  }
+
+  // If no products match, show a message
+  if (filteredProducts.length === 0) {
+    productsContainer.innerHTML = `
+      <div class="placeholder-message">
+        No products found matching your search
+      </div>
+    `;
+    return;
+  }
+
+  // Display the filtered products
   displayProducts(filteredProducts);
-});
+}
+
+/* Filter and display products when category changes */
+categoryFilter.addEventListener("change", filterAndDisplayProducts);
+
+/* Filter and display products when search input changes */
+searchInput.addEventListener("input", filterAndDisplayProducts);
 
 /* Chat form submission handler - call Cloudflare Worker with selected products */
 chatForm.addEventListener("submit", async (e) => {
